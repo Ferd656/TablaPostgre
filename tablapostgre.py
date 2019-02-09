@@ -81,10 +81,10 @@ class TablaPostgre:
         # credenciales de su base de datos. Tome las medidas de seguridad que
         # sean necesarias, en caso de que necesite una mayor seguridad, es
         # posible que necesite modificar el código.
-        self.__credenciales = "dbname='dber9grapha9oo' " + \
-                              "user='okbbczvriirvrw' " + \
-                              "password='b4078a2ea189ccbda53ca2e2170255486e6b16814a2abf86b271651aaa23d8d6' " + \
-                              "host='ec2-107-22-238-186.compute-1.amazonaws.com' " + \
+        self.__credenciales = "dbname='da0i8gojan20po' " + \
+                              "user='lohpwehfinayeb' " + \
+                              "password='63c6cf9c32cd53a4185c5ac27bd1e5da52404fffd52f95dda864c1efa8a59bda' " + \
+                              "host='ec2-23-21-244-254.compute-1.amazonaws.com' " + \
                               "port='5432'"
         # -------------------------------------------------------------------------------
 
