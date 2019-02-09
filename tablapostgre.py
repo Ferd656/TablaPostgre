@@ -71,7 +71,7 @@ class TablaPostgre:
         | Una instancia de esta clase siempre creara una tabla con al menos las         |
         | siguientes columnas:                                                          |
         |                                                                               |
-        |    - llave:
+        |    - llave: llave única obligatoria                                           |
         |    - USUARIO_ACT: usuario que actualiza                                       |
         |    - FECHA_ACT: fecha de actualizacion                                        |
         +-------------------------------------------------------------------------------+
