@@ -36,9 +36,9 @@ class TablaPostgre:
     |   - Enlistar columnas                                                         |
     |   - Contar filas                                                              |
     |   - Eliminar tabla                                                            |
-    |   - Agregar item                                                              |
-    |   - Eliminar item                                                             |
-    |   - Actualizar item                                                           |
+    |   - Agregar registro                                                          |
+    |   - Eliminar registro                                                         |
+    |   - Actualizar registro                                                       |
     |   - Agregar columna                                                           |
     |   - Eliminar columna                                                          |
     |   - Obtener tabla en DataFrame                                                |
@@ -71,7 +71,7 @@ class TablaPostgre:
         | Una instancia de esta clase siempre creara una tabla con al menos las         |
         | siguientes columnas:                                                          |
         |                                                                               |
-        |    - ITEM: llave única                                                        |
+        |    - llave:
         |    - USUARIO_ACT: usuario que actualiza                                       |
         |    - FECHA_ACT: fecha de actualizacion                                        |
         +-------------------------------------------------------------------------------+
@@ -81,39 +81,40 @@ class TablaPostgre:
         # credenciales de su base de datos. Tome las medidas de seguridad que
         # sean necesarias, en caso de que necesite una mayor seguridad, es
         # posible que necesite modificar el código.
-        self.__credenciales = "dbname='ddmm9si91h4s8e' " + \
-                              "user='twukjajaejjrpo' " + \
-                              "password='e30899662c91c928a021e4eccbdc4cf19d07c17db028b31c8a6a6bf5391b6224' " + \
-                              "host='ec2-54-243-228-140.compute-1.amazonaws.com' " + \
+        self.__credenciales = "dbname='dber9grapha9oo' " + \
+                              "user='okbbczvriirvrw' " + \
+                              "password='b4078a2ea189ccbda53ca2e2170255486e6b16814a2abf86b271651aaa23d8d6' " + \
+                              "host='ec2-107-22-238-186.compute-1.amazonaws.com' " + \
                               "port='5432'"
         # -------------------------------------------------------------------------------
 
         self.fecha = str(datetime.now())
         self.usuario = str(usuario)
         self.nombre_tabla = nombre_tabla.lower()
-        self.columnas = ["item TEXT UNIQUE NOT NULL",
+        self.columnas = ["llave TEXT UNIQUE NOT NULL",
                          "usuario_act TEXT NOT NULL",
                          "fecha_act TIMESTAMP NOT NULL"]
 
         if len(columnas) > 0:
             for x in columnas:
-                if (x[:5].lower() != "item " and
+                if (x[:5].lower() != "llave " and
                    x[:12].lower() != "usuario_act " and
                    x[:10].lower() != "fecha_act ") or \
-                    (x[:4].lower() != "item" and
+                    (x[:4].lower() != "llave" and
                      x[:11].lower() != "usuario_act" and
                      x[:9].lower() != "fecha_act"):
 
                     self.columnas.append(x.lower())
 
-        self.__sql_interno("CREATE TABLE IF NOT EXISTS " + self.nombre_tabla + " (" +
-                           ','.join(self.columnas) + ")")
+        try:
+            self.__sql_interno("CREATE TABLE IF NOT EXISTS " + self.nombre_tabla + " (" +
+                               ','.join(self.columnas) + ")")
 
-        if self.__existe():
             print("Tabla '" + self.nombre_tabla.lower() +
                   "' generada con las siguientes columnas: " + str(self.columnas).lower())
-        else:
-            print(chr(10)+"Tabla no generada")
+
+        except Exception as e:
+            print(chr(10)+"Tabla no generada" + chr(10)*2 + str(e))
 
     def __sql_interno(self, sql_str):
         """
@@ -126,32 +127,18 @@ class TablaPostgre:
         | Utilizar con cautela.                                                         |
         +-------------------------------------------------------------------------------+
         """
-        c = ""
+        __conn = psycopg2.connect(self.__credenciales)
+        cur = __conn.cursor()
+        cur.execute(sql_str)
+
         try:
-            __conn = psycopg2.connect(self.__credenciales)
-            cur = __conn.cursor()
-            cur.execute(sql_str)
-
-            try:
-                c = cur.fetchall()
-
-            except Exception as e:
-                c = e
-
-            __conn.commit()
-            __conn.close()
+            c = cur.fetchall()
 
         except Exception as e:
-            mensaje_error = chr(10) + "Alerta de excepción:" + chr(10)*2 + \
-                  "    Se recomienda validar credenciales." if \
-                  e.__class__.__name__ == "OperationalError" else \
-                  chr(10) + "Alerta de excepción:" + chr(10)*2 + \
-                  chr(32)*4 + str(e) + chr(10) + \
-                  "Consulte la documentación de PostgreSQL en: " + \
-                  "https://www.postgresql.org/docs"
+            c = e
 
-            print(mensaje_error)
-            messagebox.showerror("Excepción", mensaje_error)
+        __conn.commit()
+        __conn.close()
 
         return c
 
@@ -164,44 +151,32 @@ class TablaPostgre:
         | Devuelve verdadero o falso.                                                   |
         +-------------------------------------------------------------------------------+
         """
-        tipo_elementos = ['tabla', 'columna', 'item']
+        tipo_elementos = ['tabla', 'columna', 'llave']
 
-        try:
-            if tipo_elemento.lower() == 'tabla':
-                # Comprueba tabla
-                return self.__sql_interno("SELECT EXISTS(SELECT 1 FROM pg_catalog.pg_class AS c " +
-                                          "JOIN pg_catalog.pg_namespace AS n " +
-                                          "ON n.oid = c.relnamespace " +
-                                          "WHERE c.relname = '" + self.nombre_tabla + "' AND " +
-                                          "c.relkind = 'r');") != []
+        if tipo_elemento.lower() == 'tabla':
+            # Comprueba tabla
+            return self.__sql_interno("SELECT EXISTS(SELECT 1 FROM pg_catalog.pg_class AS c " +
+                                      "JOIN pg_catalog.pg_namespace AS n " +
+                                      "ON n.oid = c.relnamespace " +
+                                      "WHERE c.relname = '" + self.nombre_tabla + "' AND " +
+                                      "c.relkind = 'r');") != []
 
-            elif tipo_elemento.lower() == 'columna':
-                # Comprueba columna
-                return self.__sql_interno("SELECT column_name FROM information_schema.columns " +
-                                          "WHERE table_name = '" + self.nombre_tabla + "' AND " +
-                                          "column_name='" + elemento + "'") != []
+        elif tipo_elemento.lower() == 'columna':
+            # Comprueba columna
+            return self.__sql_interno("SELECT column_name FROM information_schema.columns " +
+                                      "WHERE table_name = '" + self.nombre_tabla + "' AND " +
+                                      "column_name='" + elemento + "'") != []
 
-            elif tipo_elemento.lower() == 'item':
-                # Comprueba item
-                return int(self.__sql_interno("SELECT COUNT(*) FROM " +
-                                              self.nombre_tabla +
-                                              " WHERE item = '" +
-                                              elemento + "'")[0][0]) > 0
+        elif tipo_elemento.lower() == 'llave':
+            # Comprueba LLA
+            return int(self.__sql_interno("SELECT COUNT(*) FROM " +
+                                          self.nombre_tabla +
+                                          " WHERE llave = '" +
+                                          elemento + "'")[0][0]) > 0
 
-            else:
+        else:
 
-                raise ValueError("Elemento inválido. Se esperaba: %s" % tipo_elementos)
-
-        except Exception as e:
-            mensaje_error = chr(10) + "Alerta de excepción:" + chr(10)*2 + \
-                  "    Se recomienda validar credenciales." if \
-                  e.__class__.__name__ == "OperationalError" else \
-                  chr(10) + "Alerta de excepción:" + chr(10)*2 + \
-                  chr(32)*4 + str(e) + chr(10) + \
-                  "Consulte la documentación de PostgreSQL en: " + \
-                  "https://www.postgresql.org/docs"
-            print(mensaje_error)
-            return False
+            raise ValueError("Elemento inválido. Se esperaba: %s" % tipo_elementos)
 
     def sql(self, sql_str):
         """
@@ -209,17 +184,23 @@ class TablaPostgre:
         | Ejecuta una sentencia SQL pasada como argumento (string).                     |
         | Debe ser compatible con postgreSQL.                                           |
         |                                                                               |
-        | Devuelve, e imprime por pantalla, un registro de la ejecucion.                |
+        | Devuelve, e imprime por pantalla, una notificacion de la ejecucion.           |
         |                                                                               |
         | Utilizar con cautela.                                                         |
         +-------------------------------------------------------------------------------+
         """
-        self.__sql_interno(sql_str)
+        try:
 
-        bitacora = "Sentencia SQL ejecutada por: " + \
-                   self.usuario + \
-                   " el " + str(self.fecha) + chr(10) + chr(10) + \
-                   sql_str
+            self.__sql_interno(sql_str)
+
+            bitacora = "Sentencia SQL ejecutada por: " + \
+                       self.usuario + \
+                       " en " + str(self.fecha) + chr(10)*2 + \
+                       sql_str
+
+        except Exception as e:
+
+            bitacora = "Sentencia SQL no ejecutada." + chr(10)*2 + str(e)
 
         print(bitacora)
         return bitacora
@@ -255,28 +236,30 @@ class TablaPostgre:
 
         return int(aux[0][0])
 
-    def eliminar(self):
+    def eliminame(self):
         """
         +-------------------------------------------------------------------------------+
         | Elimina la tabla creada por la instanciacion de la clase                      |
         | Su uso esta pensado principalmente para casos en los que se necesite          |
         | reciclar un objeto.                                                           |
         |                                                                               |
-        | Devuelve, e imprime por pantalla, un registro de la eliminacion de la tabla.  |
+        | Devuelve, e imprime por pantalla, una notificacion de la eliminacion          |
+        | de la tabla.                                                                  |
         |                                                                               |
         | Utilizar con cautela.                                                         |
         +-------------------------------------------------------------------------------+
         """
         if self.__existe():
-            self.__sql_interno("DROP TABLE IF EXISTS " + self.nombre_tabla)
 
-            if not self.__existe():
+            try:
+                self.__sql_interno("DROP TABLE IF EXISTS " + self.nombre_tabla)
+
                 bitacora = "Tabla '" + self.nombre_tabla + \
                            "' eliminada por: " + self.usuario + \
-                           " el " + self.fecha
+                           " en " + self.fecha
 
-            else:
-                bitacora = "Tabla no eliminada."
+            except Exception as e:
+                bitacora = "Tabla no eliminada." + chr(10)*2 + str(e)
                 messagebox.showwarning("Advertencia", bitacora)
 
         else:
@@ -286,27 +269,28 @@ class TablaPostgre:
         print(bitacora)
         return bitacora
 
-    def agregar_item(self, **kwargs):
+    def agregar_registro(self, **kwargs):
         """
         +-------------------------------------------------------------------------------+
-        | Agrega un item a la tabla, recibe como argumento un conjunto de               |
+        | Agrega un registro a la tabla, recibe como argumento un conjunto de           |
         | valores cuyas llaves corresponden a los nombres de las columnas               |
         | definidas en la instancia.                                                    |
         |                                                                               |
-        | Devuelve, e imprime por pantalla, un registro de la adicion del item.         |
+        | Devuelve, e imprime por pantalla, una notificacion de la adicion              |
+        | del registro.                                                                 |
         +-------------------------------------------------------------------------------+
         """
         t = [x.lower() for x in self.cols()]
 
-        item = ("NULL" if kwargs.get("item") is None else
-                str(kwargs.get("item")))
+        llave = ("NULL" if kwargs.get("llave") is None else
+                 str(kwargs.get("llave")))
 
         sql_str = "INSERT INTO " + self.nombre_tabla + " (" + \
                   (t[0] if len(t) == 1 else ', '.join(t)) + ") " + \
-                  "VALUES('" + item + \
+                  "VALUES('" + llave + \
                   "','" + self.usuario + "', '" + self.fecha + "'"
 
-        t.remove('item')
+        t.remove('llave')
         t.remove('usuario_act')
         t.remove('fecha_act')
 
@@ -321,64 +305,67 @@ class TablaPostgre:
 
         self.__sql_interno(sql_str)
 
-        if kwargs.get("item") is not None and self.__existe(tipo_elemento='item', elemento=item):
-            bitacora = "Item " + item + " agregado por: " + self.usuario + \
-                       " el " + self.fecha
+        if kwargs.get("llave") is not None and \
+                self.__existe(tipo_elemento='llave', elemento=llave):
+            bitacora = "Registro " + llave + " agregado por: " + self.usuario + \
+                       " en " + self.fecha
         else:
-            bitacora = "Item no agregado."
+            bitacora = "Registro no agregado."
             messagebox.showwarning("Advertencia", bitacora)
 
         print(bitacora)
         return bitacora
 
-    def eliminar_item(self, item):
+    def eliminar_registro(self, llave):
         """
         +-------------------------------------------------------------------------------+
-        | Elimina un registro que contiene un item dado.                                |
+        | Elimina un registro que contiene una llave dada.                              |
         |                                                                               |
-        | Devuelve, e imprime por pantalla, un registro de la eliminacion del item.     |
+        | Devuelve, e imprime por pantalla, una notificacion de la eliminacion          |
+        | del registro.                                                                 |
         +-------------------------------------------------------------------------------+
         """
-        if self.__existe(tipo_elemento='item', elemento=item):
+        if self.__existe(tipo_elemento='llave', elemento=llave):
             self.__sql_interno("DELETE FROM " + self.nombre_tabla +
-                               " WHERE item = '" + item + "'")
-            bitacora = "Item " + item + " eliminado por: " + self.usuario + \
-                       " el " + self.fecha
+                               " WHERE llave = '" + llave + "'")
+            bitacora = "Registro " + llave + " eliminado por: " + self.usuario + \
+                       " en " + self.fecha
 
         else:
-            bitacora = "Item " + item + " no fue encontrado en la tabla."
+            bitacora = "Registro " + llave + " no fue encontrado en la tabla."
             messagebox.showwarning("Advertencia", bitacora)
 
         print(bitacora)
         return bitacora
 
-    def actualizar_item(self, llave, **kwargs):
+    def actualizar_registro(self, llave, **kwargs):
         """
         +-------------------------------------------------------------------------------+
-        | Actualiza un item de la tabla, recibe como argumento un conjunto de           |
+        | Actualiza un registro de la tabla, recibe como argumento un conjunto de       |
         | valores cuyas llaves corresponden a los nombres de las columnas               |
         | definidas en la instancia.                                                    |
         |                                                                               |
-        | Devuelve, e imprime por pantalla, un registro de la actualizacion del item.   |
+        | Devuelve, e imprime por pantalla, una notificacion de la actualizacion        |
+        | del registro.                                                                 |
         +-------------------------------------------------------------------------------+
         """
 
         if llave is None or len(llave) <= 0:
-            bitacora = "Item no actualizado." + chr(10) + \
+            bitacora = "Registro no actualizado." + chr(10) + \
                        "Revise:" + chr(10) + chr(10) + \
                        "   - La llave es obligatoria"
 
             messagebox.showwarning("Advertencia", bitacora)
 
         elif not isinstance(llave, str):
-            bitacora = "Item no actualizado." + chr(10) + \
+            bitacora = "Registro no actualizado." + chr(10) + \
                        "Revise:" + chr(10) + chr(10) + \
                        "   - Tipo de dato de llave"
 
             messagebox.showwarning("Advertencia", bitacora)
 
-        elif not self.__existe(tipo_elemento='item', elemento=llave):
-            bitacora = "Item no actualizado." + chr(10) + \
+        elif not self.__existe(tipo_elemento='llave', elemento=llave):
+            bitacora = "Registro no actualizado." + chr(10) + \
                        "Revise:" + chr(10) + chr(10) + \
                        "   - Que la llave exista en la tabla"
             messagebox.showwarning("Advertencia", bitacora)
@@ -388,8 +375,8 @@ class TablaPostgre:
 
             sql_str = "UPDATE " + self.nombre_tabla + " SET "
 
-            if kwargs.get("item") is not None:
-                sql_str += "item = '" + str(kwargs.get("item")) + "'"
+            if kwargs.get("llave") is not None:
+                sql_str += "llave = '" + str(kwargs.get("llave")) + "'"
                 sql_str += ",usuario_act = '" + self.usuario + "'"
 
             else:
@@ -397,7 +384,7 @@ class TablaPostgre:
 
             sql_str += ",fecha_act = '" + self.fecha + "'"
 
-            t.remove('item')
+            t.remove('llave')
             t.remove('usuario_act')
             t.remove('fecha_act')
 
@@ -407,12 +394,12 @@ class TablaPostgre:
                         sql_str += "," + i + " = " + \
                                 str(kwargs.get(i))
 
-            sql_str += " WHERE item = '" + llave + "'"
+            sql_str += " WHERE llave = '" + llave + "'"
 
             self.__sql_interno(sql_str)
 
-            bitacora = "Item '" + llave + "' actualizado por: " + self.usuario + \
-                       " el " + str(self.fecha)
+            bitacora = "Registro '" + llave + "' actualizado por: " + self.usuario + \
+                       " en " + str(self.fecha)
 
         print(bitacora)
         return bitacora
@@ -423,7 +410,7 @@ class TablaPostgre:
         | Recibe una cadena de texto con el nombre de la columna y su tipo de datos     |
         | para añadir dicha columna a la tabla.                                         |
         |                                                                               |
-        | Devuelve, e imprime por pantalla, un registro de la actualizacion de          |
+        | Devuelve, e imprime por pantalla, una notificacion de la actualizacion de     |
         | la tabla.                                                                     |
         +-------------------------------------------------------------------------------+
         """
@@ -435,14 +422,14 @@ class TablaPostgre:
 
             if not not self.__existe(tipo_elemento='columna', elemento=c[0]):
                 bitacora = "Columna '" + c[0] + "' agregada por: " + self.usuario + \
-                           " el " + str(self.fecha)
+                           " en " + str(self.fecha)
 
             else:
                 bitacora = "Columna no agregada."
                 messagebox.showwarning("Advertencia", bitacora)
 
         else:
-            bitacora = "Columna ya existe."
+            bitacora = "Columna ya __existe."
             messagebox.showwarning("Advertencia", bitacora)
 
         print(bitacora)
@@ -454,20 +441,21 @@ class TablaPostgre:
         | Recibe una cadena de texto con el nombre de la columna para eliminar          |
         | dicha columna de la tabla.                                                    |
         |                                                                               |
-        | Devuelve, e imprime por pantalla, un registro de la actualizacion de          |
+        | Devuelve, e imprime por pantalla, una notificacion de la actualizacion de     |
         | la tabla.                                                                     |
         +-------------------------------------------------------------------------------+
         """
-        if not not self.__existe(tipo_elemento='columna', elemento=columna):
-            self.__sql_interno("ALTER TABLE " + self.nombre_tabla +
-                               " DROP COLUMN " + columna)
+        if self.__existe(tipo_elemento='columna', elemento=columna):
 
-            if not self.__existe(tipo_elemento='columna', elemento=columna):
+            try:
+                self.__sql_interno("ALTER TABLE " + self.nombre_tabla +
+                                   " DROP COLUMN " + columna)
+
                 bitacora = "Columna '" + columna + "' eliminada por: " + self.usuario + \
-                           " el " + str(self.fecha)
+                           " en " + str(self.fecha)
 
-            else:
-                bitacora = "Columna no eliminada."
+            except Exception as e:
+                bitacora = "Columna no eliminada." + chr(10)*2 + str(e)
                 messagebox.showwarning("Advertencia", bitacora)
 
         else:
