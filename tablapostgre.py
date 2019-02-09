@@ -175,7 +175,6 @@ class TablaPostgre:
                                           elemento + "'")[0][0]) > 0
 
         else:
-
             raise ValueError("Elemento inválido. Se esperaba: %s" % tipo_elementos)
 
     def sql(self, sql_str):
@@ -190,7 +189,6 @@ class TablaPostgre:
         +-------------------------------------------------------------------------------+
         """
         try:
-
             self.__sql_interno(sql_str)
 
             bitacora = "Sentencia SQL ejecutada por: " + \
@@ -199,7 +197,6 @@ class TablaPostgre:
                        sql_str
 
         except Exception as e:
-
             bitacora = "Sentencia SQL no ejecutada." + chr(10)*2 + str(e)
 
         print(bitacora)
@@ -250,7 +247,6 @@ class TablaPostgre:
         +-------------------------------------------------------------------------------+
         """
         if self.__existe():
-
             try:
                 self.__sql_interno("DROP TABLE IF EXISTS " + self.nombre_tabla)
 
