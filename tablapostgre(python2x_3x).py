@@ -1,3 +1,4 @@
+# coding=utf-8
 """
 +-------------------------------------------------------------------------------+
 | MODULO DE CLASE PARA EL MANEJO DE TABLAS POSTGRESQL                           |
