@@ -189,7 +189,7 @@ class TablaPostgre:
         +-------------------------------------------------------------------------------+
         """
         try:
-            self.__sql_interno(sql_str)
+            c = self.__sql_interno(sql_str)
 
             bitacora = "Sentencia SQL ejecutada por: " + \
                        self.usuario + \
@@ -198,9 +198,10 @@ class TablaPostgre:
 
         except Exception as e:
             bitacora = "Sentencia SQL no ejecutada." + chr(10)*2 + str(e)
+            c = bitacora
 
         print(bitacora)
-        return bitacora
+        return c
 
     def cols(self):
         """
